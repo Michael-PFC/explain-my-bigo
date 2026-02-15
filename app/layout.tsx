@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const jetbrainsMono = JetBrains_Mono({subsets:['latin'],variable:'--font-sans'});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +21,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ExplainMyBigO",
-  description: "ExplainMyBigO is a simple AI-powered tool that estimates the time and space complexity (Big-O) of your code, highlights key assumptions, and gives a short, clear explanation.",
+  description:
+    "ExplainMyBigO is a simple AI-powered tool that estimates the time and space complexity (Big-O) of your code, highlights key assumptions, and gives a short, clear explanation.",
 };
 
 export default function RootLayout({
@@ -30,7 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );

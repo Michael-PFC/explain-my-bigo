@@ -1,5 +1,5 @@
-import Home from "@/components/home";
+import { ExplainMyBigO } from "../components/explain-my-bigo/ExplainMyBigO";
 
 export default function Page() {
-  return <Home />;
+  return <ExplainMyBigO />;
 }
