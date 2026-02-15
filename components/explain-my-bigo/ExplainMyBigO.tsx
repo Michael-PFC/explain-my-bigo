@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
   defaultKeymap,
   history,
@@ -14,12 +13,20 @@ import { python } from "@codemirror/lang-python";
 import { Compartment, EditorState } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import {
+  placeholder as cmPlaceholder,
   EditorView,
   keymap,
   lineNumbers,
-  placeholder as cmPlaceholder,
 } from "@codemirror/view";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import type {
+  AnalysisSection,
+  AnalyzeErrorBody,
+  AnalyzeLanguage,
+  AnalyzeRequestBody,
+  AnalyzeResponseBody,
+} from "@/components/explain-my-bigo/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,21 +37,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import type {
-  AnalyzeErrorBody,
-  AnalyzeLanguage,
-  AnalyzeRequestBody,
-  AnalyzeResponseBody,
-  AnalysisSection,
-} from "@/components/explain-my-bigo/types";
 
 type AnalyzeStatus = "idle" | "loading" | "success" | "error";
 type EditorRuntimeLanguage = "python" | "typescript" | "java" | "cpp" | "text";
@@ -55,19 +48,6 @@ const EXAMPLE_SNIPPET = `def contains_duplicate(nums):
             if nums[i] == nums[j]:
                 return True
     return False`;
-
-const LANGUAGE_OPTIONS: ReadonlyArray<{
-  value: AnalyzeLanguage;
-  label: string;
-}> = [
-  { value: "auto", label: "Auto" },
-  { value: "python", label: "Python" },
-  { value: "javascript", label: "JavaScript/TypeScript" },
-  { value: "java", label: "Java" },
-  { value: "cpp", label: "C/C++" },
-  { value: "pseudocode", label: "Pseudocode" },
-  { value: "other", label: "Other" },
-];
 
 function parseAnalysisSections(text: string): AnalysisSection[] {
   const lines = text.split(/\r?\n/);
@@ -283,7 +263,6 @@ function CodeInputEditor({
 
 export function ExplainMyBigO() {
   const [code, setCode] = useState<string>("");
-  const [language, setLanguage] = useState<AnalyzeLanguage>("auto");
   const [status, setStatus] = useState<AnalyzeStatus>("idle");
   const [analysis, setAnalysis] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -315,7 +294,7 @@ export function ExplainMyBigO() {
 
     const payload: AnalyzeRequestBody = {
       code,
-      language,
+      language: "auto",
     };
 
     try {
@@ -367,7 +346,6 @@ export function ExplainMyBigO() {
 
   function loadExample() {
     setCode(EXAMPLE_SNIPPET);
-    setLanguage("python");
   }
 
   async function copyResult() {
@@ -384,7 +362,7 @@ export function ExplainMyBigO() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 md:px-6 md:py-8">
+    <div className="mx-auto flex h-screen w-full max-w-6xl flex-col px-4 py-6 md:px-6 md:py-8">
       <header className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
           ExplainMyBigO
@@ -394,7 +372,7 @@ export function ExplainMyBigO() {
         </p>
       </header>
 
-      <main className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+      <main className="grid flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Input</CardTitle>
@@ -402,37 +380,18 @@ export function ExplainMyBigO() {
               Paste code and choose the closest language.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto [scrollbar-gutter:stable]">
             <div className="space-y-2">
               <Label>Paste your code</Label>
               <CodeInputEditor
                 value={code}
-                language={language}
+                language={"auto"}
                 placeholder={EXAMPLE_SNIPPET}
                 onChange={setCode}
                 onAnalyzeShortcut={() => {
                   void runAnalysis();
                 }}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="language-select">Language</Label>
-              <Select
-                value={language}
-                onValueChange={(value) => setLanguage(value as AnalyzeLanguage)}
-              >
-                <SelectTrigger id="language-select" className="w-full">
-                  <SelectValue placeholder="Auto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -456,7 +415,7 @@ export function ExplainMyBigO() {
               <Badge variant="outline">Worst-case only</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-scroll">
             {status === "idle" && (
               <p className="text-muted-foreground text-sm">
                 Paste code and click Analyze.
