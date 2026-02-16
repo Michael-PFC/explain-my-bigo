@@ -15,11 +15,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
 import { AnalysisOutput } from "./analysis-output";
 import { CodeInputEditor } from "./code-input-editor";
+import { HistoryPanel } from "./history-panel";
 import { parseAnalysisSections } from "./utils";
+import {
+  saveAnalysisHistory,
+  type AnalysisHistoryEntry,
+} from "@/lib/analysis-history-db";
 
 type AnalyzeStatus = "idle" | "loading" | "success" | "error";
 
@@ -29,12 +41,14 @@ const EXAMPLE_SNIPPET = `def contains_duplicate(nums):
             if nums[i] == nums[j]:
                 return True
     return False`;
+const PLACEHOLDER = `Enter your code here and click the Analyze button.`;
 
 export function ExplainMyBigO() {
   const [code, setCode] = useState<string>("");
   const [status, setStatus] = useState<AnalyzeStatus>("idle");
   const [analysis, setAnalysis] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -90,6 +104,10 @@ export function ExplainMyBigO() {
       }
 
       const data = (await response.json()) as AnalyzeResponseBody;
+      void saveAnalysisHistory({
+        code,
+        analysis: data.analysis,
+      });
       setAnalysis(data.analysis);
       setStatus("success");
     } catch (error) {
@@ -114,6 +132,14 @@ export function ExplainMyBigO() {
 
   function loadExample() {
     setCode(EXAMPLE_SNIPPET);
+  }
+
+  function loadHistoryEntry(entry: AnalysisHistoryEntry) {
+    setCode(entry.code);
+    setAnalysis(entry.analysis);
+    setErrorMessage("");
+    setStatus("success");
+    setIsHistoryOpen(false);
   }
 
   async function copyResult() {
@@ -144,7 +170,7 @@ export function ExplainMyBigO() {
             <CodeInputEditor
               value={code}
               language={"auto"}
-              placeholder={EXAMPLE_SNIPPET}
+              placeholder={PLACEHOLDER}
               onChange={setCode}
               onAnalyzeShortcut={() => {
                 void runAnalysis();
@@ -159,12 +185,29 @@ export function ExplainMyBigO() {
             <Button variant="secondary" onClick={clearInput}>
               Clear
             </Button>
+            <Button variant="outline" onClick={() => setIsHistoryOpen(true)}>
+              History
+            </Button>
             <Button variant="ghost" onClick={loadExample}>
               Load example
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Local history</DialogTitle>
+            <DialogDescription>
+              Select a previous request to load input and output.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="-mx-4 max-h-[50vh] overflow-y-auto px-4">
+            <HistoryPanel onUseEntry={loadHistoryEntry} />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AnalysisOutput
         status={status}

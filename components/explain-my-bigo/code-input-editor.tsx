@@ -98,7 +98,7 @@ export function CodeInputEditor({
           },
           ".cm-gutters": {
             backgroundColor: "transparent",
-            borderRight: "1px solid var(--border)",
+            brorderRight: "1px solid var(--border)",
           },
           "&.cm-focused": {
             outline: "none",
