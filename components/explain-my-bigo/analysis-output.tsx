@@ -3,7 +3,13 @@
 import type { AnalysisSection } from "@/components/explain-my-bigo/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 type AnalysisOutputStatus = "idle" | "loading" | "success" | "error";
@@ -25,6 +31,14 @@ export function AnalysisOutput({
   onCopyResult,
   onTryAgain,
 }: AnalysisOutputProps) {
+  const proofSection = sections.find((section) =>
+    section.heading.toLowerCase().includes("proof"),
+  );
+
+  const regularSections = sections.filter(
+    (section) => section !== proofSection,
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -33,7 +47,7 @@ export function AnalysisOutput({
           <Badge variant="outline">Worst-case only</Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-scroll">
+      <CardContent className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
         {status === "idle" && (
           <p className="text-muted-foreground text-sm">
             Paste code and click Analyze.
@@ -70,8 +84,26 @@ export function AnalysisOutput({
 
             <Separator />
 
-            <div className="space-y-3">
-              {sections.map((section) => (
+            <div className="space-y-3 mb-1">
+              {proofSection && (
+                <Card size="sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="font-mono text-xs">
+                        {proofSection.heading}
+                      </CardTitle>
+                      <Badge variant="secondary">Proof</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="font-mono text-xs whitespace-pre-wrap">
+                      {proofSection.lines.join("\n")}
+                    </pre>
+                  </CardContent>
+                </Card>
+              )}
+
+              {regularSections.map((section) => (
                 <Card key={section.heading} size="sm">
                   <CardHeader>
                     <CardTitle className="font-mono text-xs">
@@ -89,6 +121,14 @@ export function AnalysisOutput({
           </>
         )}
       </CardContent>
+      {status === "success" && (
+        <CardFooter className="text-muted-foreground">
+          <p className="text-xs">
+            The analysis may not be 100% accurate. Always verify the result by
+            yourself.
+          </p>
+        </CardFooter>
+      )}
     </Card>
   );
 }

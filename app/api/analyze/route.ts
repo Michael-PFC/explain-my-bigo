@@ -18,9 +18,6 @@ const VALID_LANGUAGES: ReadonlySet<AnalyzeLanguage> = new Set([
   "other",
 ]);
 
-const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
-const POLLINATIONS_MODEL = "nova-fast";
-
 interface PollinationsMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -70,6 +67,8 @@ export async function POST(request: Request) {
   }
 
   const apiKey = process.env.POLLINATIONS_KEY;
+  const apiURL = process.env.POLLINATIONS_BASE_URL;
+  const model = process.env.POLLINATIONS_MODEL || "nova-fast";
 
   if (!apiKey) {
     const errorBody: AnalyzeErrorBody = {
@@ -81,7 +80,7 @@ export async function POST(request: Request) {
   const userPrompt = [`Language: ${language}`, "Code:", code].join("\n\n");
 
   const pollinationsPayload: PollinationsRequestBody = {
-    model: POLLINATIONS_MODEL,
+    model: model,
     temperature: 0,
     messages: [
       {
@@ -98,18 +97,15 @@ export async function POST(request: Request) {
   let pollinationsResponse: Response;
 
   try {
-    pollinationsResponse = await fetch(
-      `${POLLINATIONS_BASE_URL}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(pollinationsPayload),
-        cache: "no-store",
+    pollinationsResponse = await fetch(`${apiURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-    );
+      body: JSON.stringify(pollinationsPayload),
+      cache: "no-store",
+    });
   } catch {
     const errorBody: AnalyzeErrorBody = {
       error: "Could not reach analysis provider.",

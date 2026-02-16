@@ -17,11 +17,9 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-import { CodeInputEditor } from "./code-input-editor";
 import { AnalysisOutput } from "./analysis-output";
-import { Footer } from "./footer";
+import { CodeInputEditor } from "./code-input-editor";
 import { parseAnalysisSections } from "./utils";
-import { Header } from "./header";
 
 type AnalyzeStatus = "idle" | "loading" | "success" | "error";
 
