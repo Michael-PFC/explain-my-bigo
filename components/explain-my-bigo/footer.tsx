@@ -1,26 +1,29 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Footer() {
   return (
     <footer className="text-muted-foreground mt-6 flex items-center gap-4 text-xs">
-      <a href="/privacy" className="hover:underline">
+      <Link href="/privacy" className="hover:underline" prefetch={false}>
         Privacy
-      </a>
-      <a
+      </Link>
+      <Link
         href="https://github.com/Michael-PFC/explain-my-bigo"
         className="hover:underline"
         target="_blank"
         rel="noopener noreferrer"
+        prefetch={false}
       >
         GitHub
-      </a>
+      </Link>
       <span className="ml-auto flex items-center gap-2">
         <span>Powered by</span>
-        <a
+        <Link
           href="https://pollinations.ai/"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+          prefetch={false}
         >
           <Image
             src="https://raw.githubusercontent.com/pollinations/pollinations/main/assets/logo.svg"
@@ -31,7 +34,7 @@ export function Footer() {
             unoptimized
           />
           <span>Pollinations</span>
-        </a>
+        </Link>
       </span>
     </footer>
   );
