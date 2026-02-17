@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <div>
           <h1 className="text-3xl font-bold">Privacy Policy</h1>
           <p className="text-muted-foreground mt-2">
-            Last updated: February 16, 2026
+            Last updated: February 17, 2026
           </p>
         </div>
 
@@ -33,6 +33,11 @@ export default function PrivacyPage() {
             <p>
               ExplainMyBigO does not require an account and is intended to
               operate without collecting personal information from users.
+            </p>
+            <p>
+              For abuse prevention and rate limiting, our API may process your
+              network address and transform it into a pseudonymous identifier
+              (HMAC/hash) used only for short-lived security counters.
             </p>
           </CardContent>
         </Card>
@@ -82,12 +87,48 @@ export default function PrivacyPage() {
               We do not sell your data. ExplainMyBigO is not designed to share
               your prompts or locally stored content with third parties.
             </p>
+            <p>
+              Security-related processing (such as CAPTCHA validation and API
+              abuse prevention) may involve specialized service providers acting
+              on our instructions.
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>5) Third-party services</CardTitle>
+            <CardTitle>5) Abuse prevention and rate limiting</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p>
+              To protect service availability, we apply request throttling and
+              temporary blocks when unusual traffic is detected.
+            </p>
+            <ul className="list-disc list-inside space-y-2">
+              <li>
+                We do not store raw IP addresses in application-level rate limit
+                keys.
+              </li>
+              <li>
+                We use a pseudonymous identifier derived from your network
+                address (HMAC/hash) for security counters.
+              </li>
+              <li>
+                Rate-limit counters have short retention windows (for example,
+                minute/day windows and temporary blocks) and automatically
+                expire.
+              </li>
+            </ul>
+            <p>
+              This processing is used solely for security and abuse prevention,
+              not for advertising or behavioral profiling.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>6) Third-party services</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>Some features may involve third parties:</p>
@@ -122,7 +163,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>6) Analytics and telemetry</CardTitle>
+            <CardTitle>7) Analytics and telemetry</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -141,7 +182,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>7) Cookies</CardTitle>
+            <CardTitle>8) Cookies</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -154,7 +195,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>8) How to delete your data</CardTitle>
+            <CardTitle>9) How to delete your data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -176,7 +217,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>9) Security</CardTitle>
+            <CardTitle>10) Security</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -189,7 +230,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>10) Children&apos;s privacy</CardTitle>
+            <CardTitle>11) Children&apos;s privacy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -201,7 +242,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>11) Changes to this policy</CardTitle>
+            <CardTitle>12) Changes to this policy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
@@ -213,7 +254,7 @@ export default function PrivacyPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>12) Contact</CardTitle>
+            <CardTitle>13) Contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>

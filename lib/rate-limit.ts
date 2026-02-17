@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { createHash, createHmac } from "crypto";
 
 const redis =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -19,6 +20,40 @@ type RateLimitResult =
 const LIMIT_PER_MINUTE = 20;
 const LIMIT_PER_DAY = 1000;
 
+function normalizeIpForRateLimit(ip: string): string {
+  const value = ip.trim().toLowerCase();
+
+  if (!value || value === "unknown") {
+    return "unknown";
+  }
+
+  if (value.includes(":")) {
+    const segments = value.split(":");
+    return segments.slice(0, 4).join(":");
+  }
+
+  const octets = value.split(".");
+  if (octets.length === 4) {
+    return `${octets[0]}.${octets[1]}.${octets[2]}.0`;
+  }
+
+  return value;
+}
+
+function getRateLimitClientKey(ip: string): string {
+  const normalizedIp = normalizeIpForRateLimit(ip);
+  const secret = process.env.RATE_LIMIT_HASH_SECRET;
+
+  if (secret && secret.trim().length > 0) {
+    return createHmac("sha256", secret)
+      .update(normalizedIp)
+      .digest("hex")
+      .slice(0, 40);
+  }
+
+  return createHash("sha256").update(normalizedIp).digest("hex").slice(0, 40);
+}
+
 function blockDurationFromStrikes(strikes: number) {
   if (strikes <= 1) return 60; // 1 min
   if (strikes === 2) return 5 * 60; // 5 min
@@ -36,11 +71,11 @@ export async function enforceRateLimit(ip: string): Promise<RateLimitResult> {
     };
   }
 
-  const safeIp = ip || "unknown";
-  const blockKey = `rl:block:${safeIp}`;
-  const minuteKey = `rl:cnt:1m:${safeIp}`;
-  const dayKey = `rl:cnt:1d:${safeIp}`;
-  const strikeKey = `rl:strike:${safeIp}`;
+  const clientKey = getRateLimitClientKey(ip || "unknown");
+  const blockKey = `rl:block:${clientKey}`;
+  const minuteKey = `rl:cnt:1m:${clientKey}`;
+  const dayKey = `rl:cnt:1d:${clientKey}`;
+  const strikeKey = `rl:strike:${clientKey}`;
 
   const currentBlockTtl = await redis.ttl(blockKey);
   if (typeof currentBlockTtl === "number" && currentBlockTtl > 0) {
