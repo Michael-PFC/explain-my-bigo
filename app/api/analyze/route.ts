@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 import { SYSTEM_PROMPT } from "@/components/explain-my-bigo/prompt";
 import type {
@@ -38,6 +39,12 @@ interface PollinationsResponseBody {
   }>;
 }
 
+function getClientIp(req: NextRequest) {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0]?.trim() ?? "unknown";
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
 function isAnalyzeLanguage(value: unknown): value is AnalyzeLanguage {
   return (
     typeof value === "string" && VALID_LANGUAGES.has(value as AnalyzeLanguage)
@@ -56,7 +63,26 @@ function isExpectedAnalysisFormat(text: string): boolean {
   return true;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = await enforceRateLimit(ip);
+
+  if (!rl.allowed) {
+    const errorBody: AnalyzeErrorBody = {
+      error:
+        rl.reason === "blocked"
+          ? "Too many requests. You are temporarily blocked. Try again later."
+          : "Too many requests. Try again later.",
+    };
+
+    return NextResponse.json(errorBody, {
+      status: 429,
+      headers: {
+        "Retry-After": String(rl.retryAfterSec),
+      },
+    });
+  }
+
   let body: Partial<AnalyzeRequestBody>;
 
   try {
