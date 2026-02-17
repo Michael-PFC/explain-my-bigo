@@ -10,6 +10,7 @@ export type AnalyzeLanguage =
 export interface AnalyzeRequestBody {
   code: string;
   language: AnalyzeLanguage;
+  token: string;
 }
 
 export interface AnalyzeResponseBody {

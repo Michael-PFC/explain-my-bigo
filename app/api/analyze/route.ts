@@ -7,6 +7,7 @@ import type {
   AnalyzeRequestBody,
   AnalyzeResponseBody,
 } from "@/components/explain-my-bigo/types";
+import { verifyTurnstile } from "nextjs-turnstile";
 
 const VALID_LANGUAGES: ReadonlySet<AnalyzeLanguage> = new Set([
   "auto",
@@ -62,6 +63,22 @@ export async function POST(request: Request) {
     body = (await request.json()) as Partial<AnalyzeRequestBody>;
   } catch {
     const errorBody: AnalyzeErrorBody = { error: "Invalid JSON payload." };
+    return NextResponse.json(errorBody, { status: 400 });
+  }
+
+  const { token } = body;
+
+  if (typeof token !== "string" || token.trim() === "") {
+    const errorBody: AnalyzeErrorBody = { error: "CAPTCHA token is required." };
+    return NextResponse.json(errorBody, { status: 400 });
+  }
+
+  const isValid = await verifyTurnstile(token);
+
+  if (!isValid) {
+    const errorBody: AnalyzeErrorBody = {
+      error: "CAPTCHA verification failed.",
+    };
     return NextResponse.json(errorBody, { status: 400 });
   }
 

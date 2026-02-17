@@ -19,8 +19,11 @@ import { AnalysisOutput } from "./analysis-output";
 import { CodeInputEditor } from "./code-input-editor";
 import { HistoryPanel } from "./history-panel";
 import { useExplainMyBigOViewModel } from "./use-explain-my-bigo-view-model";
+import { useRef } from "react";
+import { Turnstile } from "nextjs-turnstile";
 
 export function ExplainMyBigO() {
+  const formRef = useRef<HTMLFormElement | null>(null);
   const {
     code,
     status,
@@ -36,6 +39,7 @@ export function ExplainMyBigO() {
     loadHistoryEntry,
     onCodeChange,
     onHistoryOpenChange,
+    setToken,
   } = useExplainMyBigOViewModel();
 
   return (
@@ -48,32 +52,51 @@ export function ExplainMyBigO() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto [scrollbar-gutter:stable]">
-          <div className="space-y-2">
-            <CodeInputEditor
-              value={code}
-              language={"auto"}
-              placeholder={placeholder}
-              onChange={onCodeChange}
-              onAnalyzeShortcut={() => {
-                void runAnalysis();
-              }}
-            />
-          </div>
+          <form
+            ref={formRef}
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void runAnalysis();
+            }}
+          >
+            <div className="space-y-2">
+              <CodeInputEditor
+                value={code}
+                language={"auto"}
+                placeholder={placeholder}
+                onChange={onCodeChange}
+                onAnalyzeShortcut={() => {
+                  formRef.current?.requestSubmit();
+                }}
+              />
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={runAnalysis} disabled={!canAnalyze}>
-              Analyze
-            </Button>
-            <Button variant="secondary" onClick={clearInput}>
-              Clear
-            </Button>
-            <Button variant="outline" onClick={() => onHistoryOpenChange(true)}>
-              History
-            </Button>
-            <Button variant="ghost" onClick={loadExample}>
-              Load example
-            </Button>
-          </div>
+            <Turnstile
+              onSuccess={setToken}
+              onError={() => console.error("Turnstile error")}
+              onExpire={() => setToken(null)}
+              appearance="interaction-only"
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={!canAnalyze}>
+                Analyze
+              </Button>
+              <Button variant="secondary" onClick={clearInput}>
+                Clear
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onHistoryOpenChange(true)}
+              >
+                History
+              </Button>
+              <Button variant="ghost" onClick={loadExample}>
+                Load example
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   AnalyzeErrorBody,
@@ -25,6 +25,7 @@ const PLACEHOLDER = `Enter your code here and click the Analyze button.`;
 export function useExplainMyBigOViewModel() {
   const [state, dispatch] = useExplainMyBigOState();
   const { code, status, analysis, errorMessage, isHistoryOpen } = state;
+  const [token, setToken] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -59,6 +60,11 @@ export function useExplainMyBigOViewModel() {
   }
 
   async function runAnalysis() {
+    if (!token) {
+      alert("Please complete the CAPTCHA");
+      return;
+    }
+
     if (!canAnalyze) {
       return;
     }
@@ -73,6 +79,7 @@ export function useExplainMyBigOViewModel() {
     const payload: AnalyzeRequestBody = {
       code,
       language: "auto",
+      token,
     };
 
     try {
@@ -150,5 +157,7 @@ export function useExplainMyBigOViewModel() {
     loadHistoryEntry,
     onCodeChange,
     onHistoryOpenChange,
+    token,
+    setToken,
   };
 }
