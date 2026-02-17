@@ -3,10 +3,15 @@ import Image from "next/image";
 export function Footer() {
   return (
     <footer className="text-muted-foreground mt-6 flex items-center gap-4 text-xs">
-      <a href="#" className="hover:underline">
+      <a href="/privacy" className="hover:underline">
         Privacy
       </a>
-      <a href="#" className="hover:underline">
+      <a
+        href="https://github.com/Michael-PFC/explain-my-bigo"
+        className="hover:underline"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         GitHub
       </a>
       <span className="ml-auto flex items-center gap-2">
