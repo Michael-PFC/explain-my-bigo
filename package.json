@@ -1,7 +1,12 @@
 {
   "name": "explain-my-bigo",
   "version": "0.1.0",
+  "description": "Analyze code complexity instantly. ExplainMyBigO uses AI to estimate Big-O time and space complexity for any code snippet.",
   "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Michael Portela"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
