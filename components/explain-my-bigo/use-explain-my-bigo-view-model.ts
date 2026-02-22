@@ -26,6 +26,9 @@ export function useExplainMyBigOViewModel() {
   const [state, dispatch] = useExplainMyBigOState();
   const { code, status, analysis, errorMessage, isHistoryOpen } = state;
   const [token, setToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const [isCaptchaInteractionRequired, setIsCaptchaInteractionRequired] =
+    useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -56,16 +59,23 @@ export function useExplainMyBigOViewModel() {
 
   function clearInput() {
     abortControllerRef.current?.abort();
+    setToken(null);
+    setTurnstileKey((current) => current + 1);
     dispatch({ type: "clearInput" });
   }
 
   async function runAnalysis() {
-    if (!token) {
-      alert("Please complete the CAPTCHA");
+    const currentToken = token;
+
+    if (!canAnalyze) {
       return;
     }
 
-    if (!canAnalyze) {
+    if (isCaptchaInteractionRequired && !currentToken) {
+      dispatch({
+        type: "analysisFailed",
+        payload: "Please complete the CAPTCHA.",
+      });
       return;
     }
 
@@ -79,7 +89,7 @@ export function useExplainMyBigOViewModel() {
     const payload: AnalyzeRequestBody = {
       code,
       language: "auto",
-      token,
+      ...(currentToken ? { token: currentToken } : {}),
     };
 
     try {
@@ -103,7 +113,16 @@ export function useExplainMyBigOViewModel() {
           error: "Failed to analyze code.",
         }))) as AnalyzeErrorBody;
 
-        throw new Error(errorData.error || "Failed to analyze code.");
+        const errorMessage = errorData.error || "Failed to analyze code.";
+
+        if (
+          errorMessage === "CAPTCHA token is required." ||
+          errorMessage === "CAPTCHA verification failed."
+        ) {
+          setIsCaptchaInteractionRequired(true);
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = (await response.json()) as AnalyzeResponseBody;
@@ -112,10 +131,19 @@ export function useExplainMyBigOViewModel() {
         analysis: data.analysis,
       });
 
+      setIsCaptchaInteractionRequired(false);
       dispatch({ type: "analysisSucceeded", payload: data.analysis });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
+      }
+
+      if (
+        error instanceof Error &&
+        (error.message === "CAPTCHA token is required." ||
+          error.message === "CAPTCHA verification failed.")
+      ) {
+        setIsCaptchaInteractionRequired(true);
       }
 
       dispatch({
@@ -123,6 +151,11 @@ export function useExplainMyBigOViewModel() {
         payload:
           error instanceof Error ? error.message : "Something went wrong.",
       });
+    } finally {
+      setToken(null);
+      if (currentToken) {
+        setTurnstileKey((current) => current + 1);
+      }
     }
   }
 
@@ -159,5 +192,7 @@ export function useExplainMyBigOViewModel() {
     onHistoryOpenChange,
     token,
     setToken,
+    turnstileKey,
+    isCaptchaInteractionRequired,
   };
 }

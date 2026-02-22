@@ -24,6 +24,7 @@ import { Turnstile } from "nextjs-turnstile";
 
 export function ExplainMyBigO() {
   const formRef = useRef<HTMLFormElement | null>(null);
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const {
     code,
     status,
@@ -40,6 +41,8 @@ export function ExplainMyBigO() {
     onCodeChange,
     onHistoryOpenChange,
     setToken,
+    turnstileKey,
+    isCaptchaInteractionRequired,
   } = useExplainMyBigOViewModel();
 
   return (
@@ -72,12 +75,21 @@ export function ExplainMyBigO() {
               />
             </div>
 
-            <Turnstile
-              onSuccess={setToken}
-              onError={() => console.error("Turnstile error")}
-              onExpire={() => setToken(null)}
-              appearance="interaction-only"
-            />
+            {isCaptchaInteractionRequired &&
+              (turnstileSiteKey ? (
+                <Turnstile
+                  key={turnstileKey}
+                  siteKey={turnstileSiteKey}
+                  onSuccess={setToken}
+                  onError={() => setToken(null)}
+                  onExpire={() => setToken(null)}
+                  appearance="always"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  CAPTCHA is not configured. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+                </p>
+              ))}
 
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={!canAnalyze}>
