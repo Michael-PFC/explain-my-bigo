@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ExplainMyBigO
 
-## Getting Started
+ExplainMyBigO is a Next.js app that analyzes code snippets and returns worst-case Big-O complexity.
 
-First, run the development server:
+## Requirements
+
+- Node.js 20+
+- npm 10+
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create your local env file:
+
+```bash
+cp .env.example .env
+```
+
+3. Fill real values in `.env`.
+
+4. Start dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## `.env.example`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.example` (or copy this block into your `.env`) with:
 
-## Learn More
+```dotenv
+# AI provider
+POLLINATIONS_BASE_URL=https://gen.pollinations.ai/v1
+POLLINATIONS_KEY=your_pollinations_key
+POLLINATIONS_MODEL=nova-fast
 
-To learn more about Next.js, take a look at the following resources:
+# Cloudflare Turnstile
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_turnstile_site_key
+TURNSTILE_SECRET_KEY=your_turnstile_secret_key
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# CAPTCHA session behavior
+# Number of analyze requests allowed after one successful CAPTCHA verification
+CAPTCHA_SESSION_REQUESTS=5
+# Session TTL in minutes
+CAPTCHA_SESSION_TTL_MIN=60
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Shared secret used for hashing/signing (rate-limit IDs + CAPTCHA session cookie signature)
+RATE_LIMIT_HASH_SECRET=replace_with_a_long_random_secret
 
-## Deploy on Vercel
+# Upstash Redis (rate limiting)
+UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `RATE_LIMIT_HASH_SECRET` is required by the API route.
+- If Upstash envs are missing, rate limiting is disabled in local/dev fallback.
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is required in the browser for CAPTCHA rendering.

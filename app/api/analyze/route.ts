@@ -90,7 +90,13 @@ function isExpectedAnalysisFormat(text: string): boolean {
 }
 
 function getCaptchaSessionSecret(): string {
-  return process.env.RATE_LIMIT_HASH_SECRET || "dev-captcha-secret";
+  const secret = process.env.RATE_LIMIT_HASH_SECRET?.trim();
+
+  if (!secret) {
+    throw new Error("Server is missing RATE_LIMIT_HASH_SECRET.");
+  }
+
+  return secret;
 }
 
 function signCaptchaPayload(payloadBase64: string): string {
@@ -157,7 +163,40 @@ function decodeCaptchaSession(
   }
 }
 
+function attachCaptchaSessionCookie(
+  response: NextResponse,
+  remainingRequests: number,
+  expiresAt: number,
+) {
+  const normalizedRemainingRequests = Math.max(0, remainingRequests);
+  const sessionValue = encodeCaptchaSession({
+    remainingRequests: normalizedRemainingRequests,
+    expiresAt,
+  });
+
+  response.cookies.set({
+    name: CAPTCHA_SESSION_COOKIE,
+    value: sessionValue,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: Math.max(1, Math.floor((expiresAt - Date.now()) / 1000)),
+  });
+
+  return response;
+}
+
 export async function POST(request: NextRequest) {
+  try {
+    getCaptchaSessionSecret();
+  } catch {
+    const errorBody: AnalyzeErrorBody = {
+      error: "Server is missing RATE_LIMIT_HASH_SECRET.",
+    };
+    return NextResponse.json(errorBody, { status: 500 });
+  }
+
   const ip = getClientIp(request);
   const rl = await enforceRateLimit(ip);
 
@@ -196,14 +235,18 @@ export async function POST(request: NextRequest) {
   const hasValidSession =
     !!session && session.expiresAt > now && session.remainingRequests > 0;
 
-  let nextRemainingRequests = hasValidSession
+  const nextRemainingRequests = hasValidSession
     ? (session?.remainingRequests ?? 0) - 1
     : CAPTCHA_REQUESTS_PER_VERIFICATION - 1;
+  const sessionExpiresAt = hasValidSession
+    ? (session?.expiresAt ?? now + CAPTCHA_SESSION_TTL_MS)
+    : now + CAPTCHA_SESSION_TTL_MS;
 
   if (!hasValidSession) {
     if (typeof token !== "string" || token.trim() === "") {
       const errorBody: AnalyzeErrorBody = {
         error: "CAPTCHA token is required.",
+        errorCode: "captcha_required",
       };
       return NextResponse.json(errorBody, { status: 400 });
     }
@@ -213,6 +256,7 @@ export async function POST(request: NextRequest) {
     if (!isValid) {
       const errorBody: AnalyzeErrorBody = {
         error: "CAPTCHA verification failed.",
+        errorCode: "captcha_verification_failed",
       };
       return NextResponse.json(errorBody, { status: 400 });
     }
@@ -223,12 +267,20 @@ export async function POST(request: NextRequest) {
 
   if (code.length === 0) {
     const errorBody: AnalyzeErrorBody = { error: "Code is required." };
-    return NextResponse.json(errorBody, { status: 400 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 400 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   if (!isAnalyzeLanguage(language)) {
     const errorBody: AnalyzeErrorBody = { error: "Invalid language." };
-    return NextResponse.json(errorBody, { status: 400 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 400 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   const apiKey = process.env.POLLINATIONS_KEY;
@@ -239,7 +291,22 @@ export async function POST(request: NextRequest) {
     const errorBody: AnalyzeErrorBody = {
       error: "Server is missing POLLINATIONS_KEY.",
     };
-    return NextResponse.json(errorBody, { status: 500 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 500 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
+  }
+
+  if (!apiURL || apiURL.trim() === "") {
+    const errorBody: AnalyzeErrorBody = {
+      error: "Server is missing POLLINATIONS_BASE_URL.",
+    };
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 500 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   const userPrompt = [
@@ -282,7 +349,11 @@ export async function POST(request: NextRequest) {
     const errorBody: AnalyzeErrorBody = {
       error: "Could not reach analysis provider.",
     };
-    return NextResponse.json(errorBody, { status: 502 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 502 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   if (!pollinationsResponse.ok) {
@@ -291,13 +362,21 @@ export async function POST(request: NextRequest) {
         error:
           "Too many requests right now. Please wait a moment and try again.",
       };
-      return NextResponse.json(errorBody, { status: 429 });
+      return attachCaptchaSessionCookie(
+        NextResponse.json(errorBody, { status: 429 }),
+        nextRemainingRequests,
+        sessionExpiresAt,
+      );
     }
 
     const errorBody: AnalyzeErrorBody = {
       error: "Analysis provider returned an error.",
     };
-    return NextResponse.json(errorBody, { status: 502 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 502 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   let pollinationsData: PollinationsResponseBody;
@@ -309,7 +388,11 @@ export async function POST(request: NextRequest) {
     const errorBody: AnalyzeErrorBody = {
       error: "Invalid response from analysis provider.",
     };
-    return NextResponse.json(errorBody, { status: 502 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 502 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   const analysis =
@@ -319,39 +402,31 @@ export async function POST(request: NextRequest) {
     const errorBody: AnalyzeErrorBody = {
       error: "Analysis provider returned an empty response.",
     };
-    return NextResponse.json(errorBody, { status: 502 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 502 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   if (!isExpectedAnalysisFormat(analysis)) {
     const errorBody: AnalyzeErrorBody = {
       error: "Analysis provider returned an invalid format.",
     };
-    return NextResponse.json(errorBody, { status: 502 });
+    return attachCaptchaSessionCookie(
+      NextResponse.json(errorBody, { status: 502 }),
+      nextRemainingRequests,
+      sessionExpiresAt,
+    );
   }
 
   const responseBody: AnalyzeResponseBody = {
     analysis,
   };
 
-  if (nextRemainingRequests < 0) {
-    nextRemainingRequests = 0;
-  }
-
-  const response = NextResponse.json(responseBody, { status: 200 });
-  const sessionValue = encodeCaptchaSession({
-    remainingRequests: nextRemainingRequests,
-    expiresAt: now + CAPTCHA_SESSION_TTL_MS,
-  });
-
-  response.cookies.set({
-    name: CAPTCHA_SESSION_COOKIE,
-    value: sessionValue,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: Math.floor(CAPTCHA_SESSION_TTL_MS / 1000),
-  });
-
-  return response;
+  return attachCaptchaSessionCookie(
+    NextResponse.json(responseBody, { status: 200 }),
+    nextRemainingRequests,
+    sessionExpiresAt,
+  );
 }

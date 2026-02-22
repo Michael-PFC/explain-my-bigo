@@ -116,13 +116,17 @@ export function useExplainMyBigOViewModel() {
         const errorMessage = errorData.error || "Failed to analyze code.";
 
         if (
-          errorMessage === "CAPTCHA token is required." ||
-          errorMessage === "CAPTCHA verification failed."
+          errorData.errorCode === "captcha_required" ||
+          errorData.errorCode === "captcha_verification_failed"
         ) {
           setIsCaptchaInteractionRequired(true);
         }
 
-        throw new Error(errorMessage);
+        const apiError = new Error(errorMessage) as Error & {
+          errorCode?: string;
+        };
+        apiError.errorCode = errorData.errorCode;
+        throw apiError;
       }
 
       const data = (await response.json()) as AnalyzeResponseBody;
@@ -140,8 +144,10 @@ export function useExplainMyBigOViewModel() {
 
       if (
         error instanceof Error &&
-        (error.message === "CAPTCHA token is required." ||
-          error.message === "CAPTCHA verification failed.")
+        ((error as Error & { errorCode?: string }).errorCode ===
+          "captcha_required" ||
+          (error as Error & { errorCode?: string }).errorCode ===
+            "captcha_verification_failed")
       ) {
         setIsCaptchaInteractionRequired(true);
       }
